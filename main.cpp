@@ -289,6 +289,399 @@ void rr(int volt,string status,int time,int n,map<char,pair<int,int>> mp,vector<
     }
 
 }
+void SPN(string status,int time,int n,map<char,pair<int,int>> mp,vector<char> processes, map<char,int> service_time)
+{
+    vector<string> strings(n,"");
+    map<char,pair<int,int>> mp2;
+    mp2=mp;
+    map<char,bool> waiting ;
+    map<char,int> finish_time;
+    map<char,int> waiting_time;
+    set<pair<int,char>> s;
+
+
+    //we need to save the service time and serving time
+
+    for(int i=0; i<n; i++)
+    {
+        strings[i]+=processes[i];
+        strings[i]+="     ";
+    }
+    string title="SPN   ";
+    string heading="------";
+   // iterator front_set;
+   char operating;
+    for(int i=0;i<time;i++)
+    {
+        heading+="--";
+        title+=to_string((i%10))+" ";
+        for(int k=0;k<n;k++)
+        {
+            if(mp[processes[k]].first==i && s.empty())
+            {
+                waiting[processes[k]]=1;
+                operating=processes[k];
+                pair<int,char> extrap;
+                extrap.first=mp[processes[k]].second;
+                extrap.second=processes[k];
+                s.insert(extrap);
+
+            }else if(mp[processes[k]].first==i && !s.empty())
+            {
+                pair<int,char> extrap;
+                extrap.first=mp[processes[k]].second;
+                extrap.second=processes[k];
+                s.insert(extrap);
+                waiting[processes[k]]=1;
+
+            } if (operating==processes[k] && mp[processes[k]].second==0)
+            {
+                if(mp[processes[k]].second==0)
+                {
+                    auto front_set=s.begin();
+                    while(front_set!=s.end())
+                    {
+                        if((*front_set).second!=operating)
+                        {
+                            front_set++;
+                        }else{
+                            s.erase(front_set);
+                            waiting[operating]=0;
+                            finish_time[operating]=i;
+
+                            break;
+                        }
+                    }
+                    front_set=s.begin();
+                    operating=(*front_set).second;
+                }
+            }
+            if(i==time-1){
+                            finish_time[operating]=time;
+                        }
+        }
+        for(int j=0;j<n;j++)
+        {
+            if(operating==processes[j] && mp[processes[j]].second )
+            {
+                mp[processes[j]].second-=1;
+                strings[j]+="|*";
+
+
+
+            }
+
+            else if(waiting[processes[j]]==1)
+            {
+                strings[j]+="|.";
+                waiting_time[processes[j]]+=1;
+            }
+            else
+            {
+                strings[j]+="| ";
+            }
+            if(i==time-1)
+            {
+                strings[j]+="| ";
+
+            }
+        }
+        if(time-1==i)
+        {
+            heading+="--";
+            title+=to_string(((i+1)%10))+" ";
+        }
+
+
+
+        }
+    if(status=="trace")
+    {cout<<title<<endl;
+    cout<<heading<<endl;
+    for(int i=0; i<n; i++)
+    {
+        cout<<strings[i]<<endl;
+    }
+    cout<<heading<<endl<<endl;
+    }else
+    {
+
+        print_stats("SPN",mp,mp2,processes,finish_time,n);
+    }
+
+
+}
+
+void HRRN(string status,int time,int n,map<char,pair<int,int>> mp,vector<char> processes, map<char,int> service_time)
+{
+    vector<string> strings(n,"");
+    map<char,pair<int,int>> mp2;
+    mp2=mp;
+    map<char,bool> waiting ;
+    map<char,int> finish_time;
+    map<char,int> waiting_time;
+    deque<pair<float,char>> s;
+    for(int i=0; i<n; i++)
+    {
+        waiting_time[processes[i]]=0;
+    }
+
+    //we need to save the service time and serving time
+
+    for(int i=0; i<n; i++)
+    {
+        strings[i]+=processes[i];
+        strings[i]+="     ";
+    }
+    string title="HRRN  ";
+    string heading="------";
+   // iterator front_set;
+   char operating;
+    for(int i=0;i<time;i++)
+    {
+        heading+="--";
+        title+=to_string((i%10))+" ";
+        for(int k=0;k<n;k++)
+        {
+            if(mp[processes[k]].first==i && s.empty())
+            {
+                waiting[processes[k]]=1;
+                operating=processes[k];
+                pair<float,char> extrap;
+                float ratio_time=(waiting_time[processes[k]]+mp[processes[k]].second)/mp[processes[k]].second;
+                extrap.first=ratio_time;
+                extrap.second=processes[k];
+                s.push_front(extrap);
+                stable_sort(s.begin(),s.end());
+
+            }else if(mp[processes[k]].first==i && !s.empty())
+            {
+                pair<float,char> extrap;
+                float ratio_time=(waiting_time[processes[k]]+mp[processes[k]].second)/mp[processes[k]].second;
+                extrap.first=ratio_time;
+                extrap.second=processes[k];
+                s.push_front(extrap);
+                stable_sort(s.begin(),s.end());
+                waiting[processes[k]]=1;
+
+            } if (operating==processes[k] && mp[processes[k]].second==0)
+            {
+                    for(int f=0;f<s.size();f++)
+                    {
+                        pair<float,char> extraf=s.front();
+                        if(extraf.second==operating)
+                        {
+                            s.pop_front();
+                            waiting[operating]=0;
+                            finish_time[operating]=i;
+                            break;
+                        }else{
+                            s.pop_front();
+                            s.push_back(extraf);
+                        }
+                    }
+
+                    for(unsigned int y=0;y<s.size();y++)
+                    {
+                        pair<float,char> extraf=s.front();
+                        s.pop_front();
+                        float ratio_time=(waiting_time[extraf.second]+mp[extraf.second].second)/mp[extraf.second].second;
+                        extraf.first=ratio_time;
+                        s.push_back(extraf);
+
+                    }
+
+                    stable_sort(s.begin(),s.end());
+                    pair<float,char> extraf=s.back();
+                    operating =extraf.second;
+
+            }
+
+            if(i==time-1){
+                            finish_time[operating]=time;
+                        }
+        }
+
+        for(int j=0;j<n;j++)
+        {
+            if(operating==processes[j] && mp[processes[j]].second )
+            {
+                mp[processes[j]].second-=1;
+                strings[j]+="|*";
+
+            }
+
+            else if(waiting[processes[j]]==1)
+            {
+                strings[j]+="|.";
+                waiting_time[processes[j]]+=1;
+            }
+            else
+            {
+                strings[j]+="| ";
+            }
+            if(i==time-1)
+            {
+                strings[j]+="| ";
+
+            }
+        }
+        if(time-1==i)
+        {
+            heading+="--";
+            title+=to_string(((i+1)%10))+" ";
+        }
+
+        }
+     if(status=="trace")
+    {cout<<title<<endl;
+    cout<<heading<<endl;
+    for(int i=0; i<n; i++)
+    {
+        cout<<strings[i]<<endl;
+    }
+    cout<<heading<<endl<<endl;
+    }
+    else
+    {
+        print_stats("HRRN",mp,mp2,processes,finish_time,n);
+
+    }
+
+
+}
+
+
+
+
+void SRT(string status,int time,int n,map<char,pair<int,int>> mp,vector<char> processes, map<char,int> service_time)
+{
+
+    vector<string> strings(n,"");
+    map<char,pair<int,int>> mp2;
+    mp2=mp;
+    map<char,bool> waiting ;
+    map<char,int> finish_time;
+    multimap<int,char> s;
+    //we need to save the service time and serving time
+
+    for(int i=0; i<n; i++)
+    {
+        strings[i]+=processes[i];
+        strings[i]+="     ";
+    }
+    string title="SRT   ";
+    string heading="------";
+   // iterator front_set;
+    for(int i=0; i<time; i++)
+    {
+        heading+="--";
+        title+=to_string((i%10))+" ";
+        for(int k=0; k<n; k++)
+        {
+
+            if(mp[processes[k]].first==i && s.empty())
+            {
+                pair<int,char> extrap;
+                extrap.first=mp[processes[k]].second;
+                extrap.second=processes[k];
+                s.insert(extrap);
+                waiting[processes[k]]=1;
+
+            }else if(mp[processes[k]].first==i && !s.empty())
+            {
+                pair<int,char> extrap;
+                extrap.first=mp[processes[k]].second;
+                extrap.second=processes[k];
+                s.insert(extrap);
+                waiting[processes[k]]=1;
+
+            }
+
+        }
+
+        for(int j=0; j<n; j++)
+        {
+            auto front_set=s.begin();
+            if((*front_set).second==processes[j])
+            {
+
+                mp[processes[j]].second--;
+                strings[j]+="|*";
+
+            }
+
+            else if(waiting[processes[j]]==1)
+            {
+                strings[j]+="|.";
+            }
+            else
+            {
+                strings[j]+="| ";
+            }
+
+
+            if(i==time-1)
+            {
+                strings[j]+="| ";
+
+            }
+
+        }
+        for(int k=0;k<n;k++)
+        {
+            if(!s.empty())
+            {
+                auto front_set=s.begin();
+                if((*front_set).second==processes[k])
+                {
+                    s.erase(front_set);
+                    pair<int,char> extrap;
+                    extrap.first=mp[processes[k]].second;
+                    extrap.second=processes[k];
+                    if(mp[processes[k]].second>0)
+                    {
+                        s.insert(extrap);
+                        finish_time[processes[k]]=i+1;
+                    }else{
+                        waiting[processes[k]]=0;
+                        finish_time[processes[k]]=i+1;
+                        if(i==time-1){
+                            finish_time[(*front_set).second]=time;
+                        }
+                    }
+
+                }
+
+
+            }
+
+
+        }
+        if(time-1==i)
+        {
+            heading+="--";
+            title+=to_string(((i+1)%10))+" ";
+        }
+
+
+    }
+    if (status=="trace")
+    {cout<<title<<endl;
+    cout<<heading<<endl;
+    for(int i=0; i<n; i++)
+    {
+        cout<<strings[i]<<endl;
+    }
+    cout<<heading<<endl<<endl;
+    }
+    else
+    {
+        print_stats("SRT",mp,mp2,processes,finish_time,n);
+    }
+
+}
+
 
 void feedback1(string status,int time,int n,map<char,pair<int,int>> mp,vector<char> processes,map <int, int> arrivals)
 {
@@ -534,6 +927,152 @@ void feedback2(string status,int time,int n,map<char,pair<int,int>> mp,vector<ch
         print_stats("FB-2i",mp,mp2,processes,finish,n);
     }
 }
+void Aging1(int q,string status,int time,int n,map<char,pair<int,int>> mp,vector<char> processes)
+{
+    map<char,int> quantum;
+    vector<string> strings(n,"");
+    map<char,bool> waiting ;
+    map<char,pair<int,int>> mp2;
+    map<char,int> waiting_time;
+    deque<pair<int,char>> s;
+    for(int i=0; i<n; i++)
+    {
+        quantum[processes[i]]=q;
+        waiting[processes[i]]=0;
+        waiting_time[processes[i]]=0;
+    }
+    mp2=mp;
+
+    for(int i=0; i<n; i++)
+    {
+        strings[i]+=processes[i];
+        strings[i]+="     ";
+    }
+    string title="Aging ";
+    string heading="------";
+
+    char operating='2';
+    for(int i=0;i<time;i++)
+    {
+        heading+="--";
+        title+=to_string((i%10))+" ";
+        for(int k=0;k<n;k++)
+        {
+            if(mp[processes[k]].first==i && s.empty() && operating=='2')
+            {
+                waiting[processes[k]]=1;
+                operating=processes[k];
+            }
+            else if(mp[processes[k]].first==i && s.empty() && operating!='2')
+            {
+                waiting[processes[k]]=1;
+                pair<int,char> extraf;
+                extraf.first=mp[processes[k]].second;
+                extraf.second=processes[k];
+                s.push_front(extraf);
+
+            }
+            else if(mp[processes[k]].first==i && !s.empty() && operating!='2')
+            {
+                waiting[processes[k]]=1;
+                pair<int,char> extraf;
+                extraf.first=mp[processes[k]].second+1;
+                extraf.second=processes[k];
+                s.push_front(extraf);
+                stable_sort(s.begin(),s.end());
+            }
+        }
+         for(int k=0;k<n;k++)
+        {
+             if (operating==processes[k] && quantum[processes[k]]==0)
+            {
+                   pair<int,char> extraf,temp,temp2;
+                   quantum[processes[k]]=q;
+                   extraf.first=mp[processes[k]].second;
+                   extraf.second=processes[k];
+                   s.push_front(extraf);
+                   stable_sort(s.begin(),s.end());
+                   int maximum=s.back().first;
+                   int max_wait=-1;
+                   int h=0;
+                   while(s.back().first==maximum && h!=s.size()){
+                        temp=s.back();
+                        if(waiting_time[temp.second]>max_wait)
+                        {
+                            max_wait=waiting_time[temp.second];
+                            temp2=s.back();
+                        }
+
+                         s.pop_back();
+                         s.push_front(temp);
+                         h++;
+                   }
+                   while(s.front()!=temp2 && h!=s.size()){
+                    pair<int,char> temp3;
+                    temp3=s.front();
+                    s.pop_front();
+                    s.push_back(temp3);
+                   }
+                   s.pop_front();
+                   operating=temp2.second;
+                   waiting_time[operating]=0;
+
+            }
+
+        }
+        if(!s.empty())
+        {
+            for(unsigned int y=0;y<s.size();y++)
+            {
+                pair<int,char>extraf=s.front();
+                s.pop_front();
+                extraf.first+=1;
+                s.push_back(extraf);
+            }
+            stable_sort(s.begin(),s.end());
+        }
+        for(int j=0;j<n;j++)
+        {
+            if(operating==processes[j] && quantum[processes[j]]>0 )
+            {
+                strings[j]+="|*";
+                quantum[processes[j]]-=1;
+            }
+
+            else if(waiting[processes[j]]==1)
+            {
+                strings[j]+="|.";
+                waiting_time[processes[j]]++;
+
+            }
+            else
+            {
+                strings[j]+="| ";
+            }
+            if(i==time-1)
+            {
+                strings[j]+="| ";
+
+            }
+        }
+
+        if(time-1==i)
+        {
+            heading+="--";
+            title+=to_string(((i+1)%10))+" ";
+        }
+
+    }
+
+    cout<<title<<endl;
+    cout<<heading<<endl;
+    for(int i=0; i<n; i++)
+    {
+        cout<<strings[i]<<endl;
+    }
+    cout<<heading<<endl<<endl;
+}
+
 
 int main()
 {
@@ -573,6 +1112,8 @@ int main()
     vector<char> processes(n);
     map<char,pair<int,int>> mp;
     map <int, int> arrivals;
+    map<char,int> service_time;
+
 
     for(int i=0; i<n; i++)
     {
@@ -581,6 +1122,7 @@ int main()
         processes[i]=a[0];
         mp[a[0]]= {a[2]-'0',a[4]-'0'};
         arrivals[a[2]-'0']=1;
+        service_time[processes[i]]=mp[processes[i]].second;
     }
 
     for(int i=0; i<v.size(); i++)
@@ -593,6 +1135,17 @@ int main()
         {
             int volt=stoi(v[i].substr(2,v[i].size()-2));
             rr(volt,status,time,n,mp,processes);
+        }else if(v[i]=="3")
+        {
+            SPN(status,time,n,mp,processes,service_time);
+        }
+        else if(v[i]=="4")
+        {
+            SRT(status,time,n,mp,processes,service_time);
+        }
+        else if(v[i]=="5")
+        {
+            HRRN(status,time,n,mp,processes,service_time);
         }
         else if(v[i]=="6")
         {
@@ -601,6 +1154,10 @@ int main()
         else if(v[i]=="7")
         {
             feedback2(status,time,n,mp,processes,arrivals);
+        }else if(v[i][0]=='8')
+        {
+            int volt=stoi(v[i].substr(2,v[i].size()-2));
+            Aging1(volt,status,time,n,mp,processes);
         }
     }
     return 0;
